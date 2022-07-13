@@ -1,34 +1,26 @@
 # import all the required  modules
-from concurrent.futures import thread
 import socket
-import sys
 import threading
-from tkinter import *
-from tkinter import font
+import tkinter as tk
 from tkinter import ttk
 from tkinter.messagebox import askokcancel, showwarning
 from tkinter.simpledialog import askstring
 import os
-import pickle
-
 import server
- 
-# import all functions /
-#  everything from chat.py file
- 
-PORT = 50000
 
-FORMAT = "utf-8"
+# settings menu
+from settings import Settings
  
+FORMAT = "utf-8"
 # Create a new client socket
 # and connect to the server
 client = None
 
- 
 # GUI class for the chat
-class GUI:
+class GUI(tk.Tk):
     # constructor method
     def __init__(self):
+        tk.Tk.__init__(self)
 
         abspath = os.path.abspath(__file__)
         dname = os.path.dirname(abspath)
@@ -38,8 +30,7 @@ class GUI:
             os.makedirs(os.environ['APPDATA'] + "/ChatApp")
 
         # chat window which is currently hidden
-        self.Window = Tk()
-        self.Window.withdraw()
+        self.withdraw()
     
         name = askstring("Enter name", "Please enter your name:")
         while name == "":
@@ -58,38 +49,43 @@ class GUI:
 
         self.layout()
         
-        self.Window.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-        self.Window.mainloop()  
+        #menu bar
+        menu = tk.Menu(self)
+        settings = tk.Menubutton(menu)
+        self.settings_instance = None
+
+        menu.add_cascade(label="Settings", menu=settings, command=self.try_open_settings_menu)
+
+        self.config(menu=menu)
+
+        self.mainloop()  
 
     # The main layout of the chat
     def layout(self):
-              
-        self.Window.deiconify()
+        self.deiconify()
         self.update_title()
-        self.Window.resizable(width = False,
-                              height = False)
-        self.Window.configure(width = 470,
-                              height = 550,
-                              )
+        self.resizable(width = False, height = False)
+        self.configure(width = 470,height = 550)
 
-        self.Window.grid_columnconfigure(0, weight=1)
-        self.Window.grid_rowconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
 
-        self.master_frame = ttk.Frame(self.Window, relief=SUNKEN)
+        self.master_frame = ttk.Frame(self, relief= tk.SUNKEN)
         self.master_frame.grid(row=0, column=0, sticky="NSEW")
         
         self.master_frame.grid_columnconfigure(0, weight=1)
         self.master_frame.grid_rowconfigure(0, weight=6)
         self.master_frame.grid_rowconfigure(1, weight=1)
 
-        self.top_frame = ttk.Frame(self.master_frame, relief=SUNKEN)
+        self.top_frame = ttk.Frame(self.master_frame, relief= tk.SUNKEN)
         self.top_frame.grid(row=0, column=0, sticky="NSEW")
 
         self.top_frame.grid_rowconfigure(0, weight=1)
         self.top_frame.grid_columnconfigure(0, weight=1)
 
-        self.bottom_frame = ttk.Frame(self.master_frame, relief=SUNKEN)
+        self.bottom_frame = ttk.Frame(self.master_frame, relief= tk.SUNKEN)
         self.bottom_frame.grid(row=1, column=0, sticky="NSEW")
 
         self.bottom_frame.grid_columnconfigure(0, weight=1)
@@ -98,9 +94,9 @@ class GUI:
         self.bottom_frame.grid_rowconfigure(0, weight=1)
         self.bottom_frame.grid_rowconfigure(1, weight=1)
         
-        self.textCons = Text(self.top_frame)
+        self.textCons =  tk.Text(self.top_frame)
         self.textCons.grid(row=0, column=0, sticky="NSEW")
-        self.textCons.config(state=DISABLED)
+        self.textCons.config(state= tk.DISABLED)
 
         self.entryMsg = ttk.Entry(self.bottom_frame)
         self.entryMsg.grid(row=0, column=1, rowspan=2, sticky="NSEW")
@@ -119,14 +115,12 @@ class GUI:
         self.buttonMsg.grid(row=0, column=2, rowspan=2, sticky="NSEW")
 
         #bind enter to send message
-        self.Window.bind("<Return>", lambda event: self.sendButton(self.entryMsg.get()))
-
-    
+        self.bind("<Return>", lambda event: self.sendButton(self.entryMsg.get()))
 
     def sendButton(self, msg):
-        self.textCons.config(state = DISABLED)
+        self.textCons.config(state =  tk.DISABLED)
         self.msg=msg
-        self.entryMsg.delete(0, END)
+        self.entryMsg.delete(0,  tk.END)
         snd= threading.Thread(target = self.sendMessage)
         snd.start()
 
@@ -143,7 +137,7 @@ class GUI:
                 adr = askstring("IP ADDRESS", "Enter IP: ")
 
                 try:
-                    client.connect((adr, PORT))
+                    client.connect((adr, self.PORT))
                     self.SERVER = adr
                 except:
                     showwarning("Couldn't connect", "Couldn't connect to IP specified!")
@@ -176,7 +170,7 @@ class GUI:
                 #close socket
                 client.close()
                 self.textCons.configure(state='normal')
-                self.textCons.delete('0.0', END)
+                self.textCons.delete('0.0',  tk.END)
                 self.textCons.configure(state='disabled')
                 self.SERVER = ""
             self.update_title()
@@ -192,18 +186,18 @@ class GUI:
             else:
                 try:
                     #create server
-                    self.server = server.Server()
+                    self.server = server.Server(self.PORT)
                     server_thread = threading.Thread(target=self.server.startChat)
                     server_thread.start()
                     self.textCons.configure(state='normal')
-                    self.textCons.delete('0.0', END)
+                    self.textCons.delete('0.0',  tk.END)
                     self.textCons.configure(state='disabled')
                     self.write_to_box("Started hosting server...")
                     self.host_button.configure(text="Close")
 
                     #join server you just hosted
                     client = socket.socket(socket.AF_INET,socket.SOCK_STREAM) 
-                    client.connect((socket.gethostbyname(socket.gethostname()), PORT))
+                    client.connect((socket.gethostbyname(socket.gethostname()), self.PORT))
                     self.SERVER = socket.gethostbyname(socket.gethostname())
                     receive_thread = threading.Thread(target=self.receive)
                     receive_thread.start()
@@ -228,12 +222,12 @@ class GUI:
 
     def write_to_box(self, message):
         # insert messages to text box
-        self.textCons.config(state = NORMAL)
-        self.textCons.insert(END,
+        self.textCons.config(state =  tk.NORMAL)
+        self.textCons.insert( tk.END,
                                  message+"\n")
             
-        self.textCons.config(state = DISABLED)
-        self.textCons.see(END)
+        self.textCons.config(state =  tk.DISABLED)
+        self.textCons.see(tk.END)
 
     # function to receive messages
     def receive(self):
@@ -260,10 +254,13 @@ class GUI:
          
     # function to send messages
     def sendMessage(self):
-        self.textCons.config(state=DISABLED)
+        self.textCons.config(state= tk.DISABLED)
         while True:
             message = (f"{self.name}: {self.msg}")
-            client.send(message.encode(FORMAT))   
+            try:
+                client.send(message.encode(FORMAT))   
+            except AttributeError:
+                pass
             break 
 
     def on_closing(self):
@@ -286,7 +283,14 @@ class GUI:
         else:
             title += " - not connected"
 
-        self.Window.title(title + f" - PORT {self.PORT}")
-            
-# create a GUI class object
-g = GUI()
+        self.title(title + f" - PORT {self.PORT}")
+
+    def try_open_settings_menu(self):
+        if self.settings_instance == None:
+            self.settings_instance = Settings(self)
+        else:
+            self.settings_instance.lift()
+
+if __name__ == "__main__":       
+    # create a GUI class object
+    g = GUI()

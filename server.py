@@ -1,18 +1,10 @@
-# import socket library
+# import libraries
 import socket
-import sys
- 
-# import threading library
 import threading
-
-#imprort os library
 import os
 
-#import pickle
-import pickle
-
 class Server():
-    def __init__(self):
+    def __init__(self, port:int):
 
         abspath = os.path.abspath(__file__)
         dname = os.path.dirname(abspath)
@@ -21,7 +13,7 @@ class Server():
         # Choose a port that is free
         self.folder_location = os.environ['APPDATA'] + "/ChatApp/"
 
-        self.PORT = 50000
+        self.PORT = port
 
         # An IPv4 address is obtained
         # for the server.  
@@ -51,9 +43,6 @@ class Server():
         #create chat log
         self.chat_log = []
     
-
-
-
     # function to start the connection
     def startChat(self):
     
@@ -79,7 +68,6 @@ class Server():
             self.nicknames.append(name)
             self.clients.append(conn)
               
-
             print(f"{name} joined")
 
             for i in self.chat_log:
@@ -129,8 +117,3 @@ class Server():
 
         self.server.close()
         self.nicknames = []
-
-        
-        
-        
-    
